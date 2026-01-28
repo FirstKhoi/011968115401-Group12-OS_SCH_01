@@ -1,0 +1,21 @@
+===============================================================================
+            CPU SCHEDULING ALGORITHM SIMULATOR
+                 Operating System Project
+              Class: 011968115401 - Group: 12
+===============================================================================
+
+
+📌 GITHUB REPOSITORY
+───────────────────────────────────────────────────────────────────────────────
+https://github.com/FirstKhoi/011968115401-GroupOS12-ProjectCode
+
+===============================================================================
+
+1. Clone repository:
+   git clone https://github.com/FirstKhoi/011968115401-GroupOS12-ProjectCode.git
+
+2. Navigate to project folder:
+   cd 011968115401-GroupOS12-ProjectCode
+
+3. Run Console application:
+   python3 main.py
