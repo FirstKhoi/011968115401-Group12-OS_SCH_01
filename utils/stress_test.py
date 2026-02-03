@@ -5,6 +5,9 @@ from models.process import Process
 from algorithms.fcfs import fcfs_scheduling
 from algorithms.sjf import sjf_non_preemptive
 from utils.calculator import calculate_metrics
+import csv
+import os
+from datetime import datetime
 
 
 def generate_random_processes(num_processes: int) -> list:
@@ -57,7 +60,7 @@ def run_stress_test(num_processes: int) -> dict:
     }
 
 
-def run_multiple_stress_tests():
+def run_multiple_stress_tests(output_folder: str = "output"):
     test_sizes = [100, 500, 1000, 2000]
     results = []
     
@@ -80,5 +83,35 @@ def run_multiple_stress_tests():
         faster = "FCFS" if r['fcfs_exec_time'] < r['sjf_exec_time'] else "SJF"
         print(f"{r['num_processes']:<12}{r['fcfs_exec_time']:<15.4f}"
               f"{r['sjf_exec_time']:<15.4f}{faster:<10}")
+    
+    
+    # Export to CSV
+    os.makedirs(output_folder, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filepath = os.path.join(output_folder, f"StressTest_Results_{timestamp}.csv")
+    
+    try:
+        with open(filepath, 'w', newline='', encoding='utf-8') as f:
+            f.write("=== STRESS TEST RESULTS ===\n")
+            f.write(f"Timestamp,{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+            
+            fieldnames = ['NumProcesses', 'FCFS_Time', 'SJF_Time', 'Faster_Algo', 
+                          'FCFS_Avg_WT', 'SJF_Avg_WT']
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            
+            for r in results:
+                faster = "FCFS" if r['fcfs_exec_time'] < r['sjf_exec_time'] else "SJF"
+                writer.writerow({
+                    'NumProcesses': r['num_processes'],
+                    'FCFS_Time': f"{r['fcfs_exec_time']:.6f}",
+                    'SJF_Time': f"{r['sjf_exec_time']:.6f}",
+                    'Faster_Algo': faster,
+                    'FCFS_Avg_WT': f"{r['fcfs_avg_wt']:.2f}",
+                    'SJF_Avg_WT': f"{r['sjf_avg_wt']:.2f}"
+                })
+        print(f"\n[✓] Stress test results exported to: {filepath}")
+    except Exception as e:
+        print(f"\n[✗] Failed to export stress test results: {e}")
     
     return results

@@ -1,4 +1,6 @@
 def sjf_non_preemptive(processes:  list) -> list:
+    processes.sort(key=lambda p: (p.arrival_time, p.pid))
+
     n = len(processes)
     completed = [False] * n
     current_time = 0
@@ -21,7 +23,7 @@ def sjf_non_preemptive(processes:  list) -> list:
         
         process = processes[shortest_idx]
         process.start_time = current_time
-        process.completion_time = current_time + process. burst_time
+        process.completion_time = current_time + process.burst_time
         process.turnaround_time = process.completion_time - process.arrival_time
         process.waiting_time = process.turnaround_time - process.burst_time
         

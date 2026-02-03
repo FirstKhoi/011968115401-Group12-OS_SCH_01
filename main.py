@@ -1,9 +1,11 @@
 import copy
 import os
+import argparse
+import sys
 
-# Import từ các module
+# Import modules
 from models.process import Process
-from algorithms. fcfs import fcfs_scheduling
+from algorithms.fcfs import fcfs_scheduling
 from algorithms.sjf import sjf_non_preemptive
 from utils.calculator import calculate_metrics
 from utils.csv_handler import (
@@ -22,8 +24,19 @@ from ui.display import (
 )
 
 
-INPUT_FILE = "input/processes.csv"
-OUTPUT_FOLDER = "output"
+DEFAULT_INPUT_FILE = "input/processes.csv"
+DEFAULT_OUTPUT_FOLDER = "output"
+
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='CPU Scheduling Algorithm Simulator')
+    parser.add_argument('--input', type=str, default=DEFAULT_INPUT_FILE,
+                        help=f'Path to the input CSV file containing processes (default: {DEFAULT_INPUT_FILE})')
+    parser.add_argument('--output', type=str, default=DEFAULT_OUTPUT_FOLDER,
+                        help=f'Path to the output directory (default: {DEFAULT_OUTPUT_FOLDER})')
+    parser.add_argument('--stress-test', action='store_true',
+                        help='Run stress tests immediately after simulation without prompting')
+    return parser.parse_args()
 
 
 def print_header():
@@ -36,87 +49,108 @@ def print_header():
     print("=" * 65)
 
 
-def print_footer():
+def print_footer(input_file, output_folder):
     print("\n" + "=" * 65)
     print("  ✅ PROGRAM COMPLETED SUCCESSFULLY!")
-    print(f"  📁 Input file  : {INPUT_FILE}")
-    print(f"  📁 Output folder: {OUTPUT_FOLDER}/")
+    print(f"  📁 Input file  : {input_file}")
+    print(f"  📁 Output folder: {output_folder}/")
     print("=" * 65)
 
 
-def run_fcfs(processes: list) -> tuple:
+def run_algorithm(algorithm_func, algorithm_name: str, processes: list, output_folder: str) -> tuple:
     print("\n" + "█" * 65)
-    print("  ALGORITHM 1: FCFS (First-Come, First-Served)")
+    print(f"  ALGORITHM: {algorithm_name}")
     print("█" * 65)
 
-    fcfs_processes = copy.deepcopy(processes)
+    algo_processes = copy.deepcopy(processes)
 
-    result = fcfs_scheduling(fcfs_processes)
+    result = algorithm_func(algo_processes)
     metrics = calculate_metrics(result)
     
-    display_results(result, "FCFS")
+    # Display results
+    display_results(result, algorithm_name)
     display_metrics(metrics)
-    draw_gantt_chart(result, "FCFS")
+    draw_gantt_chart(result, algorithm_name)
 
-    export_results_to_csv(result, metrics, "FCFS", OUTPUT_FOLDER)
-    
-    return result, metrics
-
-
-def run_sjf(processes: list) -> tuple:
-    print("\n" + "█" * 65)
-    print("  ALGORITHM 2: SJF Non-Preemptive (Shortest Job First)")
-    print("█" * 65)
-
-    sjf_processes = copy. deepcopy(processes)
-
-    result = sjf_non_preemptive(sjf_processes)
-    metrics = calculate_metrics(result)
-    
-
-    display_results(result, "SJF Non-Preemptive")
-    display_metrics(metrics)
-    draw_gantt_chart(result, "SJF Non-Preemptive")
-
-    
-    export_results_to_csv(result, metrics, "SJF", OUTPUT_FOLDER)
+    # Export results
+    export_results_to_csv(result, metrics, algorithm_name.split()[0], output_folder) # Use first word for filename usually (e.g. FCFS, SJF)
     
     return result, metrics
 
 
 def main():
-    # In header
-    print_header()
-    
-    # Tạo thư mục output
-    os. makedirs(OUTPUT_FOLDER, exist_ok=True)
-    
-    processes = read_processes_from_csv(INPUT_FILE)
+    try:
+        args = parse_arguments()
 
-    if processes is None:
-        print("\n[INFO] Tạo file CSV mẫu...")
-        create_sample_csv(INPUT_FILE)
-        processes = read_processes_from_csv(INPUT_FILE)
+        print_header()
+        
+        try:
+            os.makedirs(args.output, exist_ok=True)
+        except OSError as e:
+            print(f"\n[ERROR] Failed to create output directory '{args.output}': {e}")
+            sys.exit(1)
+        
+        processes = read_processes_from_csv(args.input)
 
-    display_input_table(processes)
-    
-    fcfs_result, fcfs_metrics = run_fcfs(processes)
-    
-    sjf_result, sjf_metrics = run_sjf(processes)
-    
-    display_comparison(fcfs_metrics, sjf_metrics)
-    export_comparison_to_csv(fcfs_metrics, sjf_metrics, OUTPUT_FOLDER)
-    
-    print("\n" + "=" * 65)
-    run_stress = input(" Would you like to run the STRESS TEST(y/n): ").strip().lower()
-    
-    if run_stress == 'y':
-        run_multiple_stress_tests()
-    
-    # In footer
-    print_footer()
+        if processes is None:
+            if args.input == DEFAULT_INPUT_FILE:
+                print("\n[INFO] Creating sample CSV file...")
+                try:
+                    create_sample_csv(args.input)
+                    processes = read_processes_from_csv(args.input)
+                except Exception as e:
+                    print(f"[ERROR] Could not create sample file: {e}")
+                    sys.exit(1)
+            else:
+                print(f"\n[ERROR] Could not read input file: {args.input}")
+                sys.exit(1)
+
+        if not processes:
+            print("\n[ERROR] No processes found in input file.")
+            sys.exit(1)
+
+        display_input_table(processes)
+        
+        # Run FCFS
+        fcfs_result, fcfs_metrics = run_algorithm(
+            fcfs_scheduling, 
+            "FCFS (First-Come, First-Served)", 
+            processes, 
+            args.output
+        )
+        
+        # Run SJF
+        sjf_result, sjf_metrics = run_algorithm(
+            sjf_non_preemptive, 
+            "SJF Non-Preemptive (Shortest Job First)", 
+            processes, 
+            args.output
+        )
+        
+        # Compare
+        display_comparison(fcfs_metrics, sjf_metrics)
+        export_comparison_to_csv(fcfs_metrics, sjf_metrics, args.output)
+        
+        # Stress Test
+        print("\n" + "=" * 65)
+        if args.stress_test:
+             run_multiple_stress_tests(args.output)
+        else:
+            run_stress = input(" Would you like to run the STRESS TEST(y/n): ").strip().lower()
+            if run_stress == 'y':
+                run_multiple_stress_tests(args.output)
+        
+        print_footer(args.input, args.output)
+
+    except KeyboardInterrupt:
+        print("\n\n[INFO] Program interrupted by user. Exiting...")
+        sys.exit(0)
+    except Exception as e:
+        print(f"\n[ERROR] An unexpected error occurred: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
 
 
-# Entry point
 if __name__ == "__main__":
     main()

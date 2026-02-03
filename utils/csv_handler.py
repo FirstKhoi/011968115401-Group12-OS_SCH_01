@@ -5,7 +5,6 @@ from models.process import Process
 
 
 def read_processes_from_csv(filepath: str) -> list:
-    """Đọc danh sách processes từ file CSV"""
     processes = []
     
     try:
@@ -13,12 +12,15 @@ def read_processes_from_csv(filepath: str) -> list:
             reader = csv.DictReader(file)
             
             for row in reader:
-                process = Process(
-                    pid=row['PID']. strip(),
-                    arrival_time=int(row['ArrivalTime']),
-                    burst_time=int(row['BurstTime'])
-                )
-                processes.append(process)
+                try:
+                    process = Process(
+                        pid=row['PID'].strip(),
+                        arrival_time=int(row['ArrivalTime']),
+                        burst_time=int(row['BurstTime'])
+                    )
+                    processes.append(process)
+                except ValueError as ve:
+                    print(f"[!] Skipping invalid row: {row} - Error: {ve}")
         
         print(f"[✓] Read {len(processes)} processes from: {filepath}")
         return processes

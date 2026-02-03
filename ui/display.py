@@ -42,51 +42,76 @@ def display_metrics(metrics: dict):
     print("-" * 45)
 
 
-def draw_gantt_chart(processes:  list, algorithm_name: str):
+def draw_gantt_chart(processes: list, algorithm_name: str):
     print(f"\n{'='*55}")
     print(f"  GANTT CHART - {algorithm_name}")
     print("=" * 55)
     
-    # Sắp xếp theo thứ tự thực thi (start_time)
+    if not processes:
+        print("  No processes to display.")
+        return
+
+    # Sort by execution order (start_time)
     sorted_p = sorted(processes, key=lambda p: p.start_time)
     
-    # Vẽ border trên
-    top = "┌"
+    # Calculate total duration for scaling
+    total_duration = sorted_p[-1].completion_time - sorted_p[0].start_time
+    if total_duration == 0:
+        return
+
+    max_chart_width = 80
+    scale = max_chart_width / total_duration
+    
+    segment_widths = []
     for p in sorted_p:
-        width = max(p.burst_time * 2, len(p.pid) + 2)
+        prop_width = int(p.burst_time * scale)
+        actual_width = max(prop_width, len(p.pid) + 2)
+        segment_widths.append(actual_width)
+
+    # border tren
+    top = "┌"
+    for width in segment_widths:
         top += "─" * width + "┬"
     top = top[:-1] + "┐"
     print(top)
-    
-    # Vẽ tên process
+
+
     mid = "│"
-    for p in sorted_p:
-        width = max(p.burst_time * 2, len(p.pid) + 2)
+    for i, p in enumerate(sorted_p):
+        width = segment_widths[i]
         mid += f"{p.pid:^{width}}│"
     print(mid)
     
-    # Vẽ border dưới
+    # Lower border
     bot = "└"
-    for p in sorted_p:
-        width = max(p.burst_time * 2, len(p. pid) + 2)
+    for width in segment_widths:
         bot += "─" * width + "┴"
     bot = bot[:-1] + "┘"
     print(bot)
     
-    # Vẽ timeline
+    # Timeline
+    # Start time
     timeline = f"{sorted_p[0].start_time}"
-    for p in sorted_p: 
-        width = max(p. burst_time * 2, len(p.pid) + 2)
+    current_pos_char = len(str(sorted_p[0].start_time))
+    
+    for i, p in enumerate(sorted_p):
+        width = segment_widths[i]
+
+        num_str = str(p.completion_time)
+        
+        padding = width + 1 - len(num_str)
+        padding = max(1, padding) 
+        
         timeline += f"{p.completion_time:>{width + 1}}"
+        
     print(timeline)
     
-    #order excute
+    # Execution Order
     execution_order = " -> ".join([p.pid for p in sorted_p])
     print(f"\nExecution Order: {execution_order}")
 
 
 def display_comparison(fcfs_metrics: dict, sjf_metrics: dict):
-    """Hiển thị bảng so sánh hai thuật toán"""
     print("\n" + "=" * 65)
     print("  ALGORITHM COMPARISON:  FCFS vs SJF (Non-Preemptive)")
     print("=" * 65)

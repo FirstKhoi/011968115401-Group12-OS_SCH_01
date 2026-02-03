@@ -6,7 +6,7 @@ def calculate_metrics(processes: list) -> dict:
     
     # Calculate tổng
     total_waiting = sum(p.waiting_time for p in processes)
-    total_turnaround = sum(p. turnaround_time for p in processes)
+    total_turnaround = sum(p.turnaround_time for p in processes)
     total_burst = sum(p.burst_time for p in processes)
     
     # Time to excute
